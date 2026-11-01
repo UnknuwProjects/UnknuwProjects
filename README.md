@@ -1,4 +1,4 @@
-<p align="center"><img src="cat-runner.svg" alt="Pixel cat running" width="400"></p>
+<p align="center"><img src="cat.svg" alt="Pixel cat running" width="400"></p>
 
 ## Projects
 
