@@ -1,23 +1,32 @@
-<div align="center"><img src="catv1.svg" width="100%" alt="UnknuwProjects — Pixel Cat">UNKNUWPROJECTS
 
-Android System Development · Kernel Utilities · Performance
+<div align="center">
 
-"ANDROID" / "LINUX" / "MAGISK" / "KERNELSU"
+<img src="catv1.svg" width="100%" alt="Pixel cat running">
 
-</div>---
+# UNKNUWPROJECTS
 
-About
+**Android System Development · Kernel Utilities · Performance**
 
+`ANDROID` / `LINUX` / `MAGISK` / `KERNELSU`
+
+</div>
+
+---
+
+### About
+
+```bash
 $ whoami
 unknuw@android:~$
+```
 
 I work on Android system-level customization, kernel utilities, and performance optimization.
 
-My main focus is building practical tools for Magisk and KernelSU, with an emphasis on efficient resource management, system behavior, and device performance.
+My main focus is building practical tools for **Magisk and KernelSU**, with an emphasis on efficient resource management, system behavior, and device performance.
 
 I prefer simple solutions, clean implementations, and tools that serve a real purpose.
 
-Focus Areas
+### Focus Areas
 
 - Android system modification and automation
 - KernelSU / Magisk module development
@@ -25,39 +34,50 @@ Focus Areas
 - Background process management
 - Linux environments and shell scripting
 
-Selected Projects
+### Selected Projects
 
-[01] Background App Slayer
+**01. Background App Slayer**
 
 Automated background process management module designed to reduce unnecessary background activity and improve gaming performance.
 
-"Repository →" (https://github.com/UnknuwProjects/Background-App-Slayer)
+[View Repository →](https://github.com/UnknuwProjects/Background-App-Slayer)
 
-[02] Hide Navbar Keyboard
+**02. Hide Navbar Keyboard**
 
 A lightweight Android utility that automatically hides the navigation bar when the keyboard appears. Supports Android 10–15+.
 
-"Repository →" (https://github.com/UnknuwProjects/Hide-Navbar-Keyboard)
+[View Repository →](https://github.com/UnknuwProjects/Hide-Navbar-Keyboard)
 
-[03] ZRAM Boost Dynamic
+**03. ZRAM Boost Dynamic**
 
 A KernelSU module for dynamically configuring ZRAM size during installation, with the goal of improving memory management and multitasking.
 
-"Repository →" (https://github.com/UnknuwProjects/ZRAM-Boost-Dynamic)
+[View Repository →](https://github.com/UnknuwProjects/ZRAM-Boost-Dynamic)
 
-Technical Stack
+### Technical Stack
 
-Category| Technologies
-Languages| C++, Java, Shell, Python
-Platforms| Android, Linux
-System| Magisk, KernelSU, ADB, Fastboot
-Tools| Git, Terminal
+| Category | Technologies |
+|:--|:--|
+| Languages | C++, Java, Shell, Python |
+| Platforms | Android, Linux |
+| System | Magisk, KernelSU, ADB, Fastboot |
+| Tools | Git, Terminal |
 
-GitHub Activity
+---
 
-<div align="center"><img src="https://github-readme-stats.vercel.app/api?username=UnknuwProjects&show_icons=true&hide_border=true&bg_color=00000000&title_color=FFFFFF&text_color=999999&icon_color=FFFFFF&include_all_commits=true" width="420" alt="GitHub Statistics"></div>---
+### GitHub Overview
 
-<div align="center">UNKNUWPROJECTS
+<div align="center">
+
+<img src="./metrics.svg" width="100%" alt="GitHub Metrics">
+
+</div>
+
+---
+
+<div align="center">
+
+**UNKNUWPROJECTS**
 
 <sub>Built for function. Driven by curiosity.</sub>
 
