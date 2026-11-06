@@ -24,17 +24,34 @@ jobs:
           token: ${{ secrets.METRICS_TOKEN }}
           user: UnknuwProjects
 
-          template: classic
+          template: terminal
           filename: metrics.svg
 
           base: header, activity, community, repositories, metadata
+          base_indepth: yes
 
           config_timezone: Asia/Jakarta
           config_display: large
           config_output: svg
 
+          # Programming Languages
           plugin_languages: yes
           plugin_languages_limit: 8
           plugin_languages_sections: most-used
           plugin_languages_details: percentage
           plugin_languages_colors: "0:#FFFFFF, 1:#D9D9D9, 2:#B0B0B0, 3:#888888, 4:#666666, 5:#505050, 6:#383838, 7:#222222"
+
+          # Contribution Streak
+          plugin_isocalendar: yes
+          plugin_isocalendar_duration: full-year
+
+          # Full Contribution History
+          plugin_calendar: yes
+          plugin_calendar_limit: 0
+
+          # Recently Starred Repositories
+          plugin_stars: yes
+
+          # Output
+          retries: 3
+          output_action: commit
