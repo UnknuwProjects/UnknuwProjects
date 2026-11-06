@@ -32,10 +32,10 @@ Tools     : Git, Docker, Neovim, ADB / Fastboot
 ### 0x03 / Statistics
 
 <p align="center">
-  <img src="https://github-readme-stats.vercel.app/api?username=UnknuwProjects&show_icons=true&theme=transparent&hide_border=true&count_private=true&title_color=ffffff&text_color=888888&icon_color=ffffff" width="48%" alt="Stats" />
-  <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=UnknuwProjects&layout=compact&theme=transparent&hide_border=true&title_color=ffffff&text_color=888888" width="48%" alt="Languages" />
+  <img src="https://github-readme-stats.vercel.app/api?username=UnknuwProjects&show_icons=true&theme=default&hide_border=true&count_private=true" width="48%" alt="Stats" />
+  <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=UnknuwProjects&layout=compact&theme=default&hide_border=true" width="48%" alt="Languages" />
 </p>
 
 <p align="center">
-  <img src="https://github-readme-streak-stats.herokuapp.com/?user=UnknuwProjects&theme=transparent&hide_border=true&date_format=j%20M%20Y&stroke=ffffff&ring=ffffff&fire=ffffff&currStreakNum=ffffff&sideNums=ffffff&sideLabels=888888&dates=888888" width="98%" alt="Streak" />
+  <img src="https://github-readme-streak-stats.herokuapp.com/?user=UnknuwProjects&theme=default&hide_border=true" width="98%" alt="Streak" />
 </p>
