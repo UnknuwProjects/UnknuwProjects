@@ -74,7 +74,7 @@ A KernelSU module that lets users configure ZRAM size during installation, aimin
 
 <div align="center">
 
-<img src="./metrics.svg" width="100%" alt="Automatically generated GitHub metrics">
+<img src="./metric.svg" width="100%" alt="Automatically generated GitHub metrics">
 
 <sub>Automatically refreshed by GitHub Actions · Data may take a little time to update after a run</sub>
 
