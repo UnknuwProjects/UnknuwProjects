@@ -1,84 +1,100 @@
-
 <div align="center">
 
 <img src="catv1.svg" width="100%" alt="Pixel cat running">
 
 # UNKNUWPROJECTS
 
-**Android System Development · Kernel Utilities · Performance**
+**Full Nganggur Developer™**  
+*Serious projects. Questionable sleep schedule.*
 
-`ANDROID` / `LINUX` / `MAGISK` / `KERNELSU`
+`ANDROID` · `LINUX` · `MAGISK` · `KERNELSU`
+
+<p><sub>Building useful things. Breaking things occasionally. Learning either way.</sub></p>
 
 </div>
 
 ---
 
-### About
+## `$ whoami`
 
 ```bash
-$ whoami
-unknuw@android:~$
+user@unknuw:~$ whoami
+Full Nganggur Developer
+
+user@unknuw:~$ current_focus
+Android internals, kernel utilities & useful experiments
+
+user@unknuw:~$ status
+Works on my device™
 ```
 
-I work on Android system-level customization, kernel utilities, and performance optimization.
+I'm the developer behind **UnknuwProjects**. I build Android system tools, kernel-related utilities, and small projects that solve practical problems.
 
-My main focus is building practical tools for **Magisk and KernelSU**, with an emphasis on efficient resource management, system behavior, and device performance.
+Most of my work revolves around understanding how Android behaves under the hood, experimenting with system-level features, and turning those experiments into tools other people can use.
 
-I prefer simple solutions, clean implementations, and tools that serve a real purpose.
+I prefer straightforward implementations, clear documentation, and features that have an actual purpose. The occasional rabbit hole is part of the job.
 
-### Focus Areas
+## What I Work On
 
-- Android system modification and automation
-- KernelSU / Magisk module development
-- Memory management and ZRAM configuration
-- Background process management
-- Linux environments and shell scripting
+| Area | Current interests |
+|:--|:--|
+| Android | System modification, automation & utilities |
+| Root ecosystem | Magisk and KernelSU modules |
+| Memory | ZRAM configuration & memory management |
+| Performance | Background process management & tuning |
+| Linux | Shell scripting and system-level experiments |
 
-### Selected Projects
+## Selected Projects
 
-**01. Background App Slayer**
+### 01 · Background App Slayer
+A module designed to manage unnecessary background processes and reduce avoidable resource usage, with gaming performance in mind.
 
-Automated background process management module designed to reduce unnecessary background activity and improve gaming performance.
+[Explore the repository →](https://github.com/UnknuwProjects/Background-App-Slayer)
 
-[View Repository →](https://github.com/UnknuwProjects/Background-App-Slayer)
-
-**02. Hide Navbar Keyboard**
-
+### 02 · Hide Navbar Keyboard
 A lightweight Android utility that automatically hides the navigation bar when the keyboard appears. Supports Android 10–15+.
 
-[View Repository →](https://github.com/UnknuwProjects/Hide-Navbar-Keyboard)
+[Explore the repository →](https://github.com/UnknuwProjects/Hide-Navbar-Keyboard)
 
-**03. ZRAM Boost Dynamic**
+### 03 · ZRAM Boost Dynamic
+A KernelSU module that lets users configure ZRAM size during installation, aiming to make memory management more flexible.
 
-A KernelSU module for dynamically configuring ZRAM size during installation, with the goal of improving memory management and multitasking.
+[Explore the repository →](https://github.com/UnknuwProjects/ZRAM-Boost-Dynamic)
 
-[View Repository →](https://github.com/UnknuwProjects/ZRAM-Boost-Dynamic)
+## Toolchain
 
-### Technical Stack
-
-| Category | Technologies |
+| Category | Stack |
 |:--|:--|
 | Languages | C++, Java, Shell, Python |
 | Platforms | Android, Linux |
-| System | Magisk, KernelSU, ADB, Fastboot |
-| Tools | Git, Terminal |
+| System tools | Magisk, KernelSU, ADB, Fastboot |
+| Workflow | Git, Terminal |
 
----
-
-### GitHub Overview
+## GitHub Overview
 
 <div align="center">
 
-<img src="./metrics.svg" width="100%" alt="GitHub Metrics">
+<img src="./metrics.svg" width="100%" alt="Automatically generated GitHub metrics">
+
+<sub>Automatically refreshed by GitHub Actions · Data may take a little time to update after a run</sub>
 
 </div>
 
----
+## A Few Things About How I Build
+
+- I like tools that do one job and do it well.
+- I would rather understand a bug than hide it under another workaround.
+- Experiments are welcome; unexplained complexity isn't.
+- Documentation matters, especially when future-me has forgotten everything.
 
 <div align="center">
 
-**UNKNUWPROJECTS**
+---
 
-<sub>Built for function. Driven by curiosity.</sub>
+### UNKNUWPROJECTS
+
+**Built with curiosity. Maintained with patience.**
+
+<sub>Still learning. Still building. Still checking why it works.</sub>
 
 </div>
