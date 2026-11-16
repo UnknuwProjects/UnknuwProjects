@@ -30,7 +30,7 @@ jobs:
 
           # Clean, modern layout instead of the terminal-style output
           template: classic
-          filename: metrics.svg
+          filename: metric.svg
 
           # Main profile information
           base: header, activity, community, repositories, metadata
