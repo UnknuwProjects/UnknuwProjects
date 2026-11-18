@@ -17,8 +17,12 @@ API, which provably returns this account's commits, issues and PRs:
   matches the author's known names/emails, so commits made with an
   unlinked email are still counted. Bot commits are never counted.
 - Issues / PRs: listed per repository with the `creator` filter, plus
-  the Search API so contributions to other people's repositories
-  (e.g. a PR to RanggaCasper/Black-Android) are counted too.
+  a scan of the parent repositories of the account's forks (same
+  `creator` filter), so contributions to other people's repositories
+  (e.g. PRs to RanggaCasper/Black-Android) are counted too. The
+  Search API is deliberately NOT used: `author:` queries return
+  422 ("The listed users cannot be searched...") for this account,
+  both unauthenticated and with the Actions token.
 - Contributors: unique people who contributed to the original
   repositories (commits, issues, PRs, reviews). This is a count of
   *people*, not contributions -- the two were easy to confuse on the
@@ -262,37 +266,49 @@ def collect_own_issues_and_prs(repos, activity):
                 )
 
 
-def collect_external_issues_and_prs(activity):
+def collect_upstream_issues_and_prs(repos, activity):
     """
-    Issues/PRs created by the account anywhere on GitHub, including
-    other people's repositories. Best effort: if Search is unavailable
-    or rate-limited, the per-repository counts above still stand.
+    Issues/PRs created by the account in other people's repositories.
+
+    Contributions upstream almost always start from a fork, so scan
+    the parent repository of each fork with the same `creator`
+    filter used for the account's own repositories. The issues
+    listing includes pull requests, so one endpoint covers both.
+    Repositories whose parent cannot be read (renamed/deleted) are
+    skipped; items are deduplicated by id against all other sources.
     """
-    for kind in ("issue", "pr"):
-        try:
-            response = get(
-                f"{API}/search/issues",
-                {
-                    "q": f"author:{USER} type:{kind}",
-                    "per_page": 100,
-                    "page": 1,
-                },
-            ).json()
-        except requests.HTTPError as exc:
-            print(f"Search API unavailable for type:{kind} ({exc}); skipping.")
+    parents = {}
+    for repo in repos:
+        if not repo.get("fork"):
             continue
-        total = response.get("total_count", 0)
-        items = response.get("items", [])
-        print(
-            f"Search author:{USER} type:{kind}: {total} total, "
-            f"{len(items)} returned."
-        )
-        for item in items:
-            activity.add_issue_item(
-                item.get("id"),
-                parse_date(item.get("created_at")),
-                kind == "pr",
-            )
+        try:
+            details = get(f"{API}/repos/{USER}/{repo['name']}").json()
+        except requests.HTTPError as exc:
+            print(f"  cannot read fork {repo['name']} ({exc}); skipping.")
+            continue
+        parent = (details.get("parent") or {}).get("full_name")
+        if parent:
+            parents[parent.casefold()] = parent
+
+    print(f"  {len(parents)} unique parent repositories to scan.")
+    for parent in sorted(parents.values()):
+        try:
+            seen_before = len(activity.issue_ids)
+            for batch in paginated(
+                f"{API}/repos/{parent}/issues",
+                {"state": "all", "creator": USER},
+            ):
+                for item in batch:
+                    activity.add_issue_item(
+                        item.get("id"),
+                        parse_date(item.get("created_at")),
+                        "pull_request" in item,
+                    )
+            found = len(activity.issue_ids) - seen_before
+            if found:
+                print(f"  {parent}: {found} new issue(s)/PR(s).")
+        except requests.HTTPError as exc:
+            print(f"  cannot scan {parent} ({exc}); skipping.")
 
 
 # ---------------------------------------------------------------------------
@@ -610,8 +626,8 @@ def main():
 
     print("Counting issues and PRs in own repositories...")
     collect_own_issues_and_prs(public, activity)
-    print("Counting issues and PRs anywhere on GitHub (Search API)...")
-    collect_external_issues_and_prs(activity)
+    print("Counting issues and PRs in upstream (parent) repositories...")
+    collect_upstream_issues_and_prs(public, activity)
 
     print("Counting contributors (people) in original repositories...")
     contributor_total = unique_contributors(originals)
