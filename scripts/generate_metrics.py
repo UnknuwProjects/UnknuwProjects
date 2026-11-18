@@ -1,8 +1,44 @@
+"""
+Generate the UnknuwProjects GitHub overview card (metrics.svg).
+
+Why REST instead of GraphQL?
+-----------------------------
+The previous version used the GraphQL `contributionsCollection` query.
+It returned 0 commits / 0 streaks for this account on every single run
+since the workflow was created (verified across all generated SVGs in
+git history), even though the profile shows 533 contributions in the
+last year. Rather than fight an API that silently returns empty data
+for this account, this version counts real activity through the REST
+API, which provably returns this account's commits, issues and PRs:
+
+- Commits: listed per repository and branch with the `author` filter
+  (the account's commit emails are linked to the account, verified via
+  the API), plus a fallback scan of each default branch that also
+  matches the author's known names/emails, so commits made with an
+  unlinked email are still counted. Bot commits are never counted.
+- Issues / PRs: listed per repository with the `creator` filter, plus
+  the Search API so contributions to other people's repositories
+  (e.g. a PR to RanggaCasper/Black-Android) are counted too.
+- Contributors: unique people who contributed to the original
+  repositories (commits, issues, PRs, reviews). This is a count of
+  *people*, not contributions -- the two were easy to confuse on the
+  old card, so the labels now say exactly what each number is.
+
+Counting windows (kept distinct, as requested):
+- All-time: everything since the account was created
+  (created_at from the API, 12 Feb 2026 for this account).
+- Last 365 days: the trailing 365-day window ending today.
+  The two numbers are equal until the account is older than a year,
+  then they diverge -- that is expected, not a bug.
+
+Runs with the default GITHUB_TOKEN from GitHub Actions. No personal
+access token and no METRICS_TOKEN secret are needed anymore
+(METRICS_TOKEN is still accepted as a fallback if set).
+"""
 
 import html
 import os
-import re
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import requests
@@ -11,18 +47,23 @@ USER = os.getenv("METRICS_USER", "UnknuwProjects")
 TOKEN = os.getenv("GITHUB_TOKEN") or os.getenv("METRICS_TOKEN")
 
 if not TOKEN:
-    raise SystemExit("Missing GITHUB_TOKEN or METRICS_TOKEN secret.")
+    raise SystemExit(
+        "Missing GITHUB_TOKEN (GitHub Actions provides it automatically)."
+    )
 
 API = "https://api.github.com"
 NOW = datetime.now(timezone.utc)
-CUTOFF = NOW.timestamp() - (365 * 24 * 60 * 60)
+TODAY = NOW.date()
+WINDOW_START = TODAY - timedelta(days=364)  # trailing 365 days, incl. today
 
 S = requests.Session()
-S.headers.update({
-    "Authorization": f"Bearer {TOKEN}",
-    "Accept": "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
-})
+S.headers.update(
+    {
+        "Authorization": f"Bearer {TOKEN}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+)
 
 
 def get(url, params=None):
@@ -31,15 +72,13 @@ def get(url, params=None):
     return response
 
 
-def paginated(url, params=None):
+def paginated(url, params=None, max_pages=50):
+    """Yield pages of a list endpoint, newest first, up to max_pages."""
     page = 1
 
-    while True:
+    while page <= max_pages:
         options = dict(params or {})
-        options.update({
-            "per_page": 100,
-            "page": page
-        })
+        options.update({"per_page": 100, "page": page})
 
         batch = get(url, options).json()
 
@@ -54,336 +93,329 @@ def paginated(url, params=None):
         page += 1
 
 
-def graphql(query, variables):
-    response = S.post(
-        API + "/graphql",
-        json={
-            "query": query,
-            "variables": variables
-        },
-        timeout=45
-    )
+def parse_date(value):
+    """'2026-11-18T00:54:16Z' -> date. Returns None for bad input."""
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(
+            str(value).replace("Z", "+00:00")
+        ).date()
+    except ValueError:
+        return None
 
-    response.raise_for_status()
-    data = response.json()
 
-    if data.get("errors"):
-        raise RuntimeError(f"GraphQL error: {data['errors']}")
+def is_mine_by_login(item_user):
+    login = (item_user or {}).get("login") or ""
+    return login.casefold() == USER.casefold()
 
-    return data["data"]
+
+# ---------------------------------------------------------------------------
+# Repositories, user profile, languages
+# ---------------------------------------------------------------------------
 
 
 def repositories():
     result = []
-
-    for batch in paginated(
-        f"{API}/users/{USER}/repos",
-        {"type": "owner"}
-    ):
+    for batch in paginated(f"{API}/users/{USER}/repos", {"type": "owner"}):
         result.extend(batch)
-
     return result
 
 
-def contribution_year(year):
-    query = """
-    query($login: String!, $from: DateTime!, $to: DateTime!) {
-      user(login: $login) {
-        contributionsCollection(from: $from, to: $to) {
-          totalIssueContributions
-          totalPullRequestContributions
-          totalCommitContributions
-          contributionCalendar {
-            weeks {
-              contributionDays {
-                date
-                contributionCount
-              }
-            }
-          }
-        }
-      }
-    }
+def account_info():
+    return get(f"{API}/users/{USER}").json()
+
+
+def languages_of(repos):
+    languages = {}
+    for repo in repos:
+        for name, amount in get(repo["languages_url"]).json().items():
+            languages[name] = languages.get(name, 0) + int(amount)
+    return languages
+
+
+def branch_names(repo):
+    names = []
+    for batch in paginated(
+        f"{API}/repos/{USER}/{repo['name']}/branches", max_pages=1
+    ):
+        for branch in batch:
+            if branch.get("name"):
+                names.append(branch["name"])
+    return names[:20]
+
+
+# ---------------------------------------------------------------------------
+# Activity counting (commits, issues, PRs)
+# ---------------------------------------------------------------------------
+
+
+class Activity:
+    """Deduplicated activity: commit SHAs, issue/PR ids, per-day counts."""
+
+    def __init__(self):
+        self.commit_shas = set()
+        self.issue_ids = set()
+        self.days = {}  # date -> number of actions that day
+        self.commits = 0
+        self.issues = 0
+        self.pull_requests = 0
+        self.known_emails = set()
+        self.known_names = {"unknuw", "unknuwprojects"}
+
+    def add_day(self, day):
+        if day:
+            self.days[day] = self.days.get(day, 0) + 1
+
+    def add_commit(self, sha, day, git_author):
+        if not sha or sha in self.commit_shas:
+            return
+        self.commit_shas.add(sha)
+        self.commits += 1
+        self.add_day(day)
+        email = (git_author or {}).get("email")
+        if email:
+            self.known_emails.add(email.casefold())
+        name = (git_author or {}).get("name")
+        if name:
+            self.known_names.add(name.casefold())
+
+    def add_issue_item(self, item_id, day, is_pull_request):
+        if not item_id or item_id in self.issue_ids:
+            return
+        self.issue_ids.add(item_id)
+        if is_pull_request:
+            self.pull_requests += 1
+        else:
+            self.issues += 1
+        self.add_day(day)
+
+    def totals(self):
+        all_time = self.commits + self.issues + self.pull_requests
+        last_365 = sum(
+            count for day, count in self.days.items() if day >= WINDOW_START
+        )
+        return all_time, last_365
+
+
+def collect_commits(repos, activity):
+    """Primary pass: commits authored by the account, all branches."""
+    for repo in repos:
+        repo_url = f"{API}/repos/{USER}/{repo['name']}"
+        for branch in branch_names(repo) or [repo.get("default_branch")]:
+            if not branch:
+                continue
+            for batch in paginated(
+                f"{repo_url}/commits",
+                {"sha": branch, "author": USER},
+                max_pages=20,
+            ):
+                for commit in batch:
+                    details = commit.get("commit") or {}
+                    git_author = details.get("author") or {}
+                    activity.add_commit(
+                        commit.get("sha"),
+                        parse_date(git_author.get("date")),
+                        git_author,
+                    )
+
+
+def collect_unlinked_commits(repos, activity):
     """
+    Fallback pass: default-branch commits whose GitHub login is not the
+    account (unlinked email) but whose git author name/email matches the
+    identity seen in the primary pass. Capped to the 300 newest commits
+    per repository; the primary pass already covers the normal case.
+    """
+    for repo in repos:
+        repo_url = f"{API}/repos/{USER}/{repo['name']}"
+        for batch in paginated(f"{repo_url}/commits", max_pages=3):
+            for commit in batch:
+                if commit.get("sha") in activity.commit_shas:
+                    continue
+                if is_mine_by_login(commit.get("author")):
+                    continue  # already covered by the primary pass
+                details = commit.get("commit") or {}
+                git_author = details.get("author") or {}
+                email = (git_author.get("email") or "").casefold()
+                name = (git_author.get("name") or "").casefold()
+                if email in activity.known_emails or name in activity.known_names:
+                    activity.add_commit(
+                        commit.get("sha"),
+                        parse_date(git_author.get("date")),
+                        git_author,
+                    )
 
-    end = (
-        NOW.isoformat().replace("+00:00", "Z")
-        if year == NOW.year
-        else f"{year}-12-31T23:59:59Z"
-    )
 
-    data = graphql(query, {
-        "login": USER,
-        "from": f"{year}-01-01T00:00:00Z",
-        "to": end
-    })
-
-    if not data.get("user"):
-        raise RuntimeError(f"GitHub user not found: {USER}")
-
-    return data["user"]["contributionsCollection"]
-
-
-def contribution_history():
-    days = {}
-
-    totals = {
-        "commits": 0,
-        "issues": 0,
-        "pull_requests": 0
-    }
-
-    for year in range(2008, NOW.year + 1):
-        item = contribution_year(year)
-
-        for week in item["contributionCalendar"]["weeks"]:
-            for day_item in week["contributionDays"]:
-                days[day_item["date"]] = int(
-                    day_item["contributionCount"]
+def collect_own_issues_and_prs(repos, activity):
+    """Issues/PRs created by the account in its own repositories."""
+    for repo in repos:
+        repo_url = f"{API}/repos/{USER}/{repo['name']}"
+        for batch in paginated(
+            f"{repo_url}/issues", {"state": "all", "creator": USER}
+        ):
+            for item in batch:
+                activity.add_issue_item(
+                    item.get("id"),
+                    parse_date(item.get("created_at")),
+                    "pull_request" in item,
                 )
 
-        totals["commits"] += int(
-            item["totalCommitContributions"]
+
+def collect_external_issues_and_prs(activity):
+    """
+    Issues/PRs created by the account anywhere on GitHub, including
+    other people's repositories. Best effort: if Search is unavailable
+    or rate-limited, the per-repository counts above still stand.
+    """
+    for kind in ("issue", "pr"):
+        try:
+            response = get(
+                f"{API}/search/issues",
+                {
+                    "q": f"author:{USER} type:{kind}",
+                    "per_page": 100,
+                    "page": 1,
+                },
+            ).json()
+        except requests.HTTPError as exc:
+            print(f"Search API unavailable for type:{kind} ({exc}); skipping.")
+            continue
+        total = response.get("total_count", 0)
+        items = response.get("items", [])
+        print(
+            f"Search author:{USER} type:{kind}: {total} total, "
+            f"{len(items)} returned."
         )
-
-        totals["issues"] += int(
-            item["totalIssueContributions"]
-        )
-
-        totals["pull_requests"] += int(
-            item["totalPullRequestContributions"]
-        )
-
-    return days, totals
-
-
-def streaks(days):
-    if not days:
-        return 0, 0
-
-    ordered = sorted(
-        (date.fromisoformat(k), v)
-        for k, v in days.items()
-    )
-
-    longest = run = 0
-    previous = None
-
-    for day, count in ordered:
-        if count:
-            run = (
-                run + 1
-                if previous and (day - previous).days == 1
-                else 1
+        for item in items:
+            activity.add_issue_item(
+                item.get("id"),
+                parse_date(item.get("created_at")),
+                kind == "pr",
             )
 
-            longest = max(longest, run)
-            previous = day
 
-        else:
-            run = 0
-            previous = None
-
-    latest = ordered[-1][0]
-
-    cursor = (
-        latest
-        if days[latest.isoformat()]
-        else date.fromordinal(latest.toordinal() - 1)
-    )
-
-    current = 0
-
-    while days.get(cursor.isoformat(), 0) > 0:
-        current += 1
-        cursor = date.fromordinal(cursor.toordinal() - 1)
-
-    return current, longest
+# ---------------------------------------------------------------------------
+# Contributors (people, not contributions)
+# ---------------------------------------------------------------------------
 
 
 def unique_contributors(repos):
     """
-    Count unique GitHub accounts across public, non-fork repositories.
-
-    Activities:
-    - Commits
-    - Issue authors
-    - Pull request authors
-    - Pull request reviewers
-
-    Returns:
-    - All-time unique contributors
-    - Unique contributors active in the last 365 days
-
+    Count unique GitHub accounts across the original (non-fork)
+    repositories: commit authors, issue/PR authors, PR reviewers.
     Anonymous contributors are excluded.
     """
+    people = set()
 
-    all_time = set()
-    last_year = set()
-
-    def add_contributor(login, timestamp=None):
-        if not login:
-            return
-
-        login = login.casefold()
-
-        all_time.add(login)
-
-        if not timestamp:
-            return
-
-        try:
-            if isinstance(timestamp, str):
-                timestamp = datetime.fromisoformat(
-                    timestamp.replace("Z", "+00:00")
-                ).timestamp()
-
-            if float(timestamp) >= CUTOFF:
-                last_year.add(login)
-
-        except (ValueError, TypeError, OverflowError):
-            pass
+    def add(login):
+        if login:
+            people.add(login.casefold())
 
     for repo in repos:
         if repo.get("private") or repo.get("fork"):
             continue
-
         repo_url = f"{API}/repos/{USER}/{repo['name']}"
-
         print(f"Scanning contributors: {repo['name']}")
 
-        # 1. COMMITS FROM ALL BRANCHES
-
-        branch_names = set()
-
-        for batch in paginated(
-            f"{repo_url}/branches"
-        ):
-            for branch in batch:
-                if branch.get("name"):
-                    branch_names.add(branch["name"])
-
-        for branch_name in branch_names:
+        for branch in branch_names(repo) or [repo.get("default_branch")]:
+            if not branch:
+                continue
             for batch in paginated(
-                f"{repo_url}/commits",
-                {"sha": branch_name}
+                f"{repo_url}/commits", {"sha": branch}, max_pages=20
             ):
                 for commit in batch:
-                    author = commit.get("author") or {}
+                    add((commit.get("author") or {}).get("login"))
 
-                    details = commit.get("commit") or {}
-                    author_details = details.get("author") or {}
-
-                    add_contributor(
-                        author.get("login"),
-                        author_details.get("date")
-                    )
-
-        # 2. ISSUES AND PULL REQUEST AUTHORS
-
-        for batch in paginated(
-            f"{repo_url}/issues",
-            {"state": "all"}
-        ):
+        for batch in paginated(f"{repo_url}/issues", {"state": "all"}):
             for item in batch:
-                author = item.get("user") or {}
-
-                add_contributor(
-                    author.get("login"),
-                    item.get("created_at")
-                )
-
-                # 3. PULL REQUEST REVIEWS
-
+                add((item.get("user") or {}).get("login"))
                 if "pull_request" in item:
-                    reviews_url = (
-                        f"{repo_url}/pulls/"
-                        f"{item['number']}/reviews"
-                    )
-
                     for review_batch in paginated(
-                        reviews_url
+                        f"{repo_url}/pulls/{item['number']}/reviews"
                     ):
                         for review in review_batch:
-                            reviewer = review.get("user") or {}
+                            add((review.get("user") or {}).get("login"))
 
-                            add_contributor(
-                                reviewer.get("login"),
-                                review.get("submitted_at")
-                            )
-
-    return len(all_time), len(last_year)
+    return len(people)
 
 
-def starred_count():
-    response = get(
-        f"{API}/users/{USER}/starred",
-        {"per_page": 1, "page": 1}
-    )
+# ---------------------------------------------------------------------------
+# Streaks
+# ---------------------------------------------------------------------------
 
-    match = re.search(
-        r'[&?]page=(\d+)[^>]*>;\s*rel="last"',
-        response.headers.get("Link", "")
-    )
 
-    if match:
-        return int(match.group(1))
+def streaks(days, start_date):
+    """Current + longest streak in days, from account creation to today.
 
-    return len(
-        get(
-            f"{API}/users/{USER}/starred",
-            {"per_page": 100, "page": 1}
-        ).json()
-    )
+    A day counts if it has at least one action. The current streak
+    stays alive if the latest action was today or yesterday.
+    """
+    if not days:
+        return 0, 0
+
+    longest = run = 0
+    cursor = start_date
+    while cursor <= TODAY:
+        if days.get(cursor, 0) > 0:
+            run += 1
+            longest = max(longest, run)
+        else:
+            run = 0
+        cursor += timedelta(days=1)
+
+    cursor = TODAY
+    if days.get(cursor, 0) == 0:
+        cursor -= timedelta(days=1)
+    current = 0
+    while cursor >= start_date and days.get(cursor, 0) > 0:
+        current += 1
+        cursor -= timedelta(days=1)
+
+    return current, longest
+
+
+# ---------------------------------------------------------------------------
+# Rendering
+# ---------------------------------------------------------------------------
+
+
+def format_size(kb):
+    if kb >= 1024 * 1024:
+        return f"{kb / (1024 * 1024):.1f} GB"
+    if kb >= 1024:
+        return f"{kb / 1024:.1f} MB"
+    return f"{kb} KB"
 
 
 def render(
     repos,
+    originals,
     langs,
     followers,
-    starred,
     contributors,
-    last_year_contributors,
-    days,
-    totals
+    activity,
+    created_date,
 ):
     total_bytes = sum(langs.values()) or 1
-
-    top = sorted(
-        langs.items(),
-        key=lambda x: x[1],
-        reverse=True
-    )[:6]
+    top = sorted(langs.items(), key=lambda x: x[1], reverse=True)[:6]
 
     ys = [456, 495, 534, 573, 612, 651]
     bars = [440, 479, 518, 557, 596, 635]
-
-    colors = [
-        "#75f0c2",
-        "#64c9ff",
-        "#b4a1ff",
-        "#ffbd69",
-        "#f4d36b",
-        "#ff8d9b"
-    ]
+    colors = ["#75f0c2", "#64c9ff", "#b4a1ff", "#ffbd69", "#f4d36b", "#ff8d9b"]
 
     rows = []
-
     for i in range(6):
         if i < len(top):
             name, amount = top[i]
-
             pct = amount / total_bytes * 100
-
             label = html.escape(name[:18])
             value = f"{pct:.2f}%"
             width = max(3, 430 * pct / 100)
-
         else:
             label = "—"
             value = "—"
             width = 0
-
         rows.append(f"""
   <text x="84" y="{ys[i]}" class="white">{label}</text>
   <rect x="230" y="{bars[i]}" width="430" height="13" rx="6.5" fill="#2b3b50"/>
@@ -392,30 +424,21 @@ def render(
 """)
 
     repo_count = len(repos)
+    original_count = len(originals)
+    fork_count = repo_count - original_count
+    stars = sum(int(x.get("stargazers_count", 0)) for x in repos)
+    forks = sum(int(x.get("forks_count", 0)) for x in repos)
+    original_size = format_size(sum(int(x.get("size", 0)) for x in originals))
 
-    stars = sum(
-        int(x.get("stargazers_count", 0))
-        for x in repos
-    )
-
-    forks = sum(
-        int(x.get("forks_count", 0))
-        for x in repos
-    )
-
-    size_gb = sum(
-        int(x.get("size", 0))
-        for x in repos
-    ) / (1024 * 1024)
-
-    current, longest = streaks(days)
-
+    total_all, total_last_365 = activity.totals()
+    current, longest = streaks(activity.days, created_date)
+    created_label = created_date.strftime("%d %b %Y").upper()
     today = NOW.strftime("%d %b %Y").upper()
 
     return f"""<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="850" viewBox="0 0 1200 850" role="img" aria-labelledby="title desc">
 
 <title id="title">UnknuwProjects GitHub Overview</title>
-<desc id="desc">Live GitHub dashboard with repositories, contributors, languages and contribution streaks.</desc>
+<desc id="desc">Live GitHub dashboard with repositories, contributions, languages and contribution streaks.</desc>
 
 <defs>
   <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
@@ -474,11 +497,11 @@ def render(
   <g class="mono">
     <text x="78" y="216" class="label">PUBLIC REPOSITORIES</text>
     <text x="78" y="267" class="value">{repo_count:,}</text>
-    <text x="78" y="291" class="muted" font-size="12">{size_gb:.1f} GB total repository size</text>
+    <text x="78" y="291" class="muted" font-size="12">{original_count} original · {fork_count} forks · {original_size}</text>
 
     <text x="354" y="216" class="label">STARS RECEIVED</text>
     <text x="354" y="267" class="value">{stars:,}</text>
-    <text x="354" y="291" class="muted" font-size="12">Across public repositories</text>
+    <text x="354" y="291" class="muted" font-size="12">Across all repositories</text>
 
     <text x="630" y="216" class="label">FOLLOWERS</text>
     <text x="630" y="267" class="value">{followers:,}</text>
@@ -486,14 +509,14 @@ def render(
 
     <text x="906" y="216" class="label">FORKS RECEIVED</text>
     <text x="906" y="267" class="value">{forks:,}</text>
-    <text x="906" y="291" class="muted" font-size="12">Across public repositories</text>
+    <text x="906" y="291" class="muted" font-size="12">Across all repositories</text>
   </g>
 </g>
 
 <rect x="54" y="340" width="690" height="450" rx="18" class="panel"/>
 
 <text x="84" y="382" class="sans white" font-size="19" font-weight="700">LANGUAGE FOOTPRINT</text>
-<text x="84" y="407" class="mono muted" font-size="12">Share of code across public repositories</text>
+<text x="84" y="407" class="mono muted" font-size="12">Share of code across original repositories</text>
 
 <g class="mono" font-size="14">
 {''.join(rows)}
@@ -502,17 +525,17 @@ def render(
 <rect x="766" y="340" width="380" height="450" rx="18" class="panel"/>
 
 <text x="796" y="382" class="sans white" font-size="19" font-weight="700">CONTRIBUTION PULSE</text>
-<text x="796" y="407" class="mono muted" font-size="12">All-time activity · GitHub contribution calendar</text>
+<text x="796" y="407" class="mono muted" font-size="12">Since {created_label} · commits + issues + PRs</text>
 
 <g class="mono">
 
-  <text x="796" y="452" class="muted" font-size="12">ALL-TIME CONTRIBUTORS</text>
-  <text x="1110" y="452" class="white" font-size="20" text-anchor="end">{contributors:,}</text>
+  <text x="796" y="452" class="muted" font-size="12">ALL-TIME CONTRIBUTIONS</text>
+  <text x="1110" y="452" class="white" font-size="20" text-anchor="end">{total_all:,}</text>
 
   <path d="M796 466H1116" stroke="#30435a"/>
 
-  <text x="796" y="493" class="muted" font-size="12">LAST YEAR CONTRIBUTORS</text>
-  <text x="1110" y="493" fill="#9ef2d4" font-size="20" text-anchor="end">{last_year_contributors:,}</text>
+  <text x="796" y="493" class="muted" font-size="12">LAST 365 DAYS</text>
+  <text x="1110" y="493" fill="#9ef2d4" font-size="20" text-anchor="end">{total_last_365:,}</text>
 
   <path d="M796 507H1116" stroke="#30435a"/>
 
@@ -527,85 +550,93 @@ def render(
   <path d="M796 589H1116" stroke="#30435a"/>
 
   <text x="796" y="616" class="muted" font-size="12">COMMITS</text>
-  <text x="1110" y="616" class="white" font-size="20" text-anchor="end">{totals["commits"]:,}</text>
+  <text x="1110" y="616" class="white" font-size="20" text-anchor="end">{activity.commits:,}</text>
 
   <path d="M796 630H1116" stroke="#30435a"/>
 
-  <text x="796" y="657" class="muted" font-size="12">ISSUE CONTRIBUTIONS</text>
-  <text x="1110" y="657" class="white" font-size="20" text-anchor="end">{totals["issues"]:,}</text>
+  <text x="796" y="657" class="muted" font-size="12">ISSUES OPENED</text>
+  <text x="1110" y="657" class="white" font-size="20" text-anchor="end">{activity.issues:,}</text>
 
   <path d="M796 671H1116" stroke="#30435a"/>
 
-  <text x="796" y="698" class="muted" font-size="12">PULL REQUEST CONTRIBUTIONS</text>
-  <text x="1110" y="698" class="white" font-size="20" text-anchor="end">{totals["pull_requests"]:,}</text>
+  <text x="796" y="698" class="muted" font-size="12">PULL REQUESTS OPENED</text>
+  <text x="1110" y="698" class="white" font-size="20" text-anchor="end">{activity.pull_requests:,}</text>
 
   <path d="M796 712H1116" stroke="#30435a"/>
 
-  <text x="796" y="739" class="muted" font-size="12">STARRED REPOSITORIES</text>
-  <text x="1110" y="739" class="white" font-size="20" text-anchor="end">{starred:,}</text>
+  <text x="796" y="739" class="muted" font-size="12">CONTRIBUTORS (PEOPLE)</text>
+  <text x="1110" y="739" class="white" font-size="20" text-anchor="end">{contributors:,}</text>
 
 </g>
 
-<text x="54" y="824" class="mono muted" font-size="11">LIVE DATA VIA GITHUB API / GENERATED BY GITHUB ACTIONS</text>
+<text x="54" y="824" class="mono muted" font-size="11">LIVE DATA VIA GITHUB REST API / GENERATED BY GITHUB ACTIONS</text>
 <text x="1146" y="824" class="mono muted" font-size="11" text-anchor="end">UNKNUW · {today}</text>
 
 </svg>"""
 
 
 def main():
+    info = account_info()
+    created_date = parse_date(info.get("created_at")) or TODAY
+    followers = int(info.get("followers", 0))
+    if info.get("name"):
+        print(f"Account: {USER} ({info['name']}), created {created_date}")
+
     repos = repositories()
-
-    public = [
-        repo for repo in repos
-        if not repo.get("private") and not repo.get("fork")
-    ]
-
-    followers = int(
-        get(f"{API}/users/{USER}").json().get("followers", 0)
+    public = [r for r in repos if not r.get("private")]
+    originals = [r for r in public if not r.get("fork")]
+    print(
+        f"Repositories: {len(public)} public "
+        f"({len(originals)} original, {len(public) - len(originals)} forks)"
     )
 
-    languages = {}
+    languages = languages_of(originals)
 
-    for repo in public:
-        for name, amount in get(repo["languages_url"]).json().items():
-            languages[name] = (
-                languages.get(name, 0) + int(amount)
-            )
+    activity = Activity()
+    if info.get("name"):
+        activity.known_names.add(info["name"].casefold())
 
-    days, totals = contribution_history()
-
-    print("Counting all-time and last-year contributors...")
-
-    contributor_total, last_year_contributor_total = (
-        unique_contributors(public)
+    print("Counting commits (author filter, all branches)...")
+    collect_commits(public, activity)
+    print(
+        f"  {activity.commits} commits, "
+        f"{len(activity.known_emails)} known author email(s)."
     )
 
-    starred = starred_count()
+    print("Counting commits with unlinked emails (default branches)...")
+    before = activity.commits
+    collect_unlinked_commits(public, activity)
+    print(f"  +{activity.commits - before} unlinked-email commits.")
+
+    print("Counting issues and PRs in own repositories...")
+    collect_own_issues_and_prs(public, activity)
+    print("Counting issues and PRs anywhere on GitHub (Search API)...")
+    collect_external_issues_and_prs(activity)
+
+    print("Counting contributors (people) in original repositories...")
+    contributor_total = unique_contributors(originals)
 
     svg = render(
         public,
+        originals,
         languages,
         followers,
-        starred,
         contributor_total,
-        last_year_contributor_total,
-        days,
-        totals
+        activity,
+        created_date,
     )
+    Path("metrics.svg").write_text(svg, encoding="utf-8")
 
-    Path("metrics.svg").write_text(
-        svg,
-        encoding="utf-8"
-    )
-
-    current, longest = streaks(days)
-
+    total_all, total_last_365 = activity.totals()
+    current, longest = streaks(activity.days, created_date)
     print(
         f"Updated {USER}: {len(public)} public repos; "
-        f"{contributor_total} all-time contributors; "
-        f"{last_year_contributor_total} last-year contributors; "
-        f"current streak {current} days; "
-        f"longest streak {longest} days."
+        f"{total_all} all-time contributions "
+        f"({activity.commits} commits, {activity.issues} issues, "
+        f"{activity.pull_requests} PRs); "
+        f"{total_last_365} in the last 365 days; "
+        f"{contributor_total} contributors; "
+        f"current streak {current} days; longest streak {longest} days."
     )
 
 
