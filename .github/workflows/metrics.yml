@@ -15,6 +15,12 @@ on:
 permissions:
   contents: write
 
+# One run at a time. Two runs that push the updated card at the
+# same moment would reject each other's push.
+concurrency:
+  group: metrics
+  cancel-in-progress: false
+
 jobs:
   generate-metrics:
     runs-on: ubuntu-latest
