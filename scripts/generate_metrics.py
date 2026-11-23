@@ -392,14 +392,6 @@ def streaks(days, start_date):
 # ---------------------------------------------------------------------------
 
 
-def format_size(kb):
-    if kb >= 1024 * 1024:
-        return f"{kb / (1024 * 1024):.1f} GB"
-    if kb >= 1024:
-        return f"{kb / 1024:.1f} MB"
-    return f"{kb} KB"
-
-
 def render(
     repos,
     originals,
@@ -438,9 +430,9 @@ def render(
     repo_count = len(repos)
     original_count = len(originals)
     fork_count = repo_count - original_count
+    private_count = sum(1 for x in repos if x.get("private"))
     stars = sum(int(x.get("stargazers_count", 0)) for x in repos)
     forks = sum(int(x.get("forks_count", 0)) for x in repos)
-    original_size = format_size(sum(int(x.get("size", 0)) for x in originals))
 
     total_all, total_last_365 = activity.totals()
     current, longest = streaks(activity.days, created_date)
@@ -507,9 +499,9 @@ def render(
   <rect x="882" y="180" width="264" height="132" rx="16" class="panel"/>
 
   <g class="mono">
-    <text x="78" y="216" class="label">PUBLIC REPOSITORIES</text>
+    <text x="78" y="216" class="label">REPOSITORIES</text>
     <text x="78" y="267" class="value">{repo_count:,}</text>
-    <text x="78" y="291" class="muted" font-size="12">{original_count} original · {fork_count} forks · {original_size}</text>
+    <text x="78" y="291" class="muted" font-size="12">{original_count} original · {fork_count} forks · {private_count} private</text>
 
     <text x="354" y="216" class="label">STARS RECEIVED</text>
     <text x="354" y="267" class="value">{stars:,}</text>
@@ -596,7 +588,6 @@ def main():
 
     repos = repositories()
     public = [r for r in repos if not r.get("private")]
-    public_originals = [r for r in public if not r.get("fork")]
     originals = [r for r in repos if not r.get("fork")]
     print(
         f"Repositories: {len(repos)} total, {len(public)} public "
@@ -631,8 +622,8 @@ def main():
     contributor_total = unique_contributors(originals)
 
     svg = render(
-        public,
-        public_originals,
+        repos,
+        originals,
         languages,
         followers,
         contributor_total,
