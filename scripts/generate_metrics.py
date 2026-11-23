@@ -4,9 +4,9 @@ Generate the UnknuwProjects overview card (metrics.svg).
 Data comes from the REST API. The old GraphQL version returned 0
 contributions for this account, so it was dropped.
 
-- Commits are counted per repo and branch with the author filter.
-  A second pass over each default branch catches commits made with
-  an email that is not linked to the account.
+- Commits are counted per repo and branch, filtered by GitHub
+  login. A second pass over each default branch catches commits
+  made with an email that is not linked to the account.
 - Issues and PRs are counted in my own repos, and in the parent
   repos of my forks.
 - Contributors means people: unique accounts that committed,
@@ -193,7 +193,13 @@ class Activity:
 
 
 def collect_commits(repos, activity):
-    """Primary pass: commits authored by the account, all branches."""
+    """Primary pass: commits authored by the account, all branches.
+
+    The commits are filtered by GitHub login on this side. The API's
+    own author parameter is not used: it returns 0 for repos whose
+    commits use the ID form of the noreply email, which silently
+    dropped whole repos (THPS4-Android lost 140 commits that way).
+    """
     for repo in repos:
         repo_url = f"{API}/repos/{USER}/{repo['name']}"
         for branch in branch_names(repo) or [repo.get("default_branch")]:
@@ -201,10 +207,12 @@ def collect_commits(repos, activity):
                 continue
             for batch in paginated(
                 f"{repo_url}/commits",
-                {"sha": branch, "author": USER},
+                {"sha": branch},
                 max_pages=20,
             ):
                 for commit in batch:
+                    if not is_mine_by_login(commit.get("author")):
+                        continue
                     details = commit.get("commit") or {}
                     git_author = details.get("author") or {}
                     activity.add_commit(
@@ -217,9 +225,9 @@ def collect_commits(repos, activity):
 def collect_unlinked_commits(repos, activity):
     """
     Fallback pass: default-branch commits whose GitHub login is not the
-    account (unlinked email) but whose git author name/email matches the
-    identity seen in the primary pass. Capped to the 300 newest commits
-    per repository; the primary pass already covers the normal case.
+    account (unlinked email) but whose git author name/email matches a
+    known identity of mine. Capped to the 300 newest commits per
+    repository; the primary pass covers the normal case.
     """
     for repo in repos:
         repo_url = f"{API}/repos/{USER}/{repo['name']}"
@@ -227,8 +235,6 @@ def collect_unlinked_commits(repos, activity):
             for commit in batch:
                 if commit.get("sha") in activity.commit_shas:
                     continue
-                if is_mine_by_login(commit.get("author")):
-                    continue  # already covered by the primary pass
                 details = commit.get("commit") or {}
                 git_author = details.get("author") or {}
                 email = (git_author.get("email") or "").casefold()
@@ -604,7 +610,7 @@ def main():
     if info.get("name"):
         activity.known_names.add(info["name"].casefold())
 
-    print("Counting commits (author filter, all branches)...")
+    print("Counting commits (login filter, all branches)...")
     collect_commits(repos, activity)
     print(
         f"  {activity.commits} commits, "
