@@ -30,16 +30,30 @@ jobs:
       - name: Install dependencies
         run: python -m pip install requests
 
-      - name: Generate custom live metrics dashboard
-        # The default GITHUB_TOKEN is enough: the script only reads
-        # public data through the REST API. No PAT / METRICS_TOKEN
-        # secret is needed anymore.
+      - name: Check token
+        id: token
+        env:
+          METRICS_TOKEN: ${{ secrets.METRICS_TOKEN }}
+        run: |
+          if [ -z "$METRICS_TOKEN" ]; then
+            echo "METRICS_TOKEN is not set. Skipping this run: without"
+            echo "it, only public repos are counted and the card would"
+            echo "go back to the old, lower numbers."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate metrics card
+        if: steps.token.outputs.ready == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          METRICS_TOKEN: ${{ secrets.METRICS_TOKEN }}
           METRICS_USER: UnknuwProjects
         run: python scripts/generate_metrics.py
 
       - name: Commit updated metrics
+        if: steps.token.outputs.ready == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

@@ -1,43 +1,23 @@
 """
-Generate the UnknuwProjects GitHub overview card (metrics.svg).
+Generate the UnknuwProjects overview card (metrics.svg).
 
-Why REST instead of GraphQL?
------------------------------
-The previous version used the GraphQL `contributionsCollection` query.
-It returned 0 commits / 0 streaks for this account on every single run
-since the workflow was created (verified across all generated SVGs in
-git history), even though the profile shows 533 contributions in the
-last year. Rather than fight an API that silently returns empty data
-for this account, this version counts real activity through the REST
-API, which provably returns this account's commits, issues and PRs:
+Data comes from the REST API. The old GraphQL version returned 0
+contributions for this account, so it was dropped.
 
-- Commits: listed per repository and branch with the `author` filter
-  (the account's commit emails are linked to the account, verified via
-  the API), plus a fallback scan of each default branch that also
-  matches the author's known names/emails, so commits made with an
-  unlinked email are still counted. Bot commits are never counted.
-- Issues / PRs: listed per repository with the `creator` filter, plus
-  a scan of the parent repositories of the account's forks (same
-  `creator` filter), so contributions to other people's repositories
-  (e.g. PRs to RanggaCasper/Black-Android) are counted too. The
-  Search API is deliberately NOT used: `author:` queries return
-  422 ("The listed users cannot be searched...") for this account,
-  both unauthenticated and with the Actions token.
-- Contributors: unique people who contributed to the original
-  repositories (commits, issues, PRs, reviews). This is a count of
-  *people*, not contributions -- the two were easy to confuse on the
-  old card, so the labels now say exactly what each number is.
+- Commits are counted per repo and branch with the author filter.
+  A second pass over each default branch catches commits made with
+  an email that is not linked to the account.
+- Issues and PRs are counted in my own repos, and in the parent
+  repos of my forks.
+- Contributors means people: unique accounts that committed,
+  opened issues or PRs, or reviewed PRs in original repos.
 
-Counting windows (kept distinct, as requested):
-- All-time: everything since the account was created
-  (created_at from the API, 12 Feb 2026 for this account).
-- Last 365 days: the trailing 365-day window ending today.
-  The two numbers are equal until the account is older than a year,
-  then they diverge -- that is expected, not a bug.
+Two windows: all-time (since the account was created) and the
+last 365 days. They match until the account is a year old.
 
-Runs with the default GITHUB_TOKEN from GitHub Actions. No personal
-access token and no METRICS_TOKEN secret are needed anymore
-(METRICS_TOKEN is still accepted as a fallback if set).
+Set a read-only token as the METRICS_TOKEN secret so private
+repos are counted too. The default GITHUB_TOKEN only sees
+public repos, which makes the numbers too low.
 """
 
 import html
@@ -48,12 +28,10 @@ from pathlib import Path
 import requests
 
 USER = os.getenv("METRICS_USER", "UnknuwProjects")
-TOKEN = os.getenv("GITHUB_TOKEN") or os.getenv("METRICS_TOKEN")
+TOKEN = os.getenv("METRICS_TOKEN") or os.getenv("GITHUB_TOKEN")
 
 if not TOKEN:
-    raise SystemExit(
-        "Missing GITHUB_TOKEN (GitHub Actions provides it automatically)."
-    )
+    raise SystemExit("Missing token: set METRICS_TOKEN or GITHUB_TOKEN.")
 
 API = "https://api.github.com"
 NOW = datetime.now(timezone.utc)
@@ -120,8 +98,17 @@ def is_mine_by_login(item_user):
 
 
 def repositories():
+    # With a personal token, /user/repos also returns private repos.
+    # The default Actions token cannot use it, so fall back to the
+    # public list when no personal token is set.
+    if os.getenv("METRICS_TOKEN"):
+        url = f"{API}/user/repos"
+        params = {"affiliation": "owner"}
+    else:
+        url = f"{API}/users/{USER}/repos"
+        params = {"type": "owner"}
     result = []
-    for batch in paginated(f"{API}/users/{USER}/repos", {"type": "owner"}):
+    for batch in paginated(url, params):
         result.extend(batch)
     return result
 
@@ -164,8 +151,11 @@ class Activity:
         self.commits = 0
         self.issues = 0
         self.pull_requests = 0
-        self.known_emails = set()
-        self.known_names = {"unknuw", "unknuwprojects"}
+        # The second name/email pair is an old local identity used
+        # before the git config was fixed. Those commits are mine,
+        # so they count.
+        self.known_emails = {"yukine@muse.local"}
+        self.known_names = {"unknuw", "unknuwprojects", "yukine (muse)"}
 
     def add_day(self, day):
         if day:
@@ -329,7 +319,7 @@ def unique_contributors(repos):
             people.add(login.casefold())
 
     for repo in repos:
-        if repo.get("private") or repo.get("fork"):
+        if repo.get("fork"):
             continue
         repo_url = f"{API}/repos/{USER}/{repo['name']}"
         print(f"Scanning contributors: {repo['name']}")
@@ -600,10 +590,12 @@ def main():
 
     repos = repositories()
     public = [r for r in repos if not r.get("private")]
-    originals = [r for r in public if not r.get("fork")]
+    public_originals = [r for r in public if not r.get("fork")]
+    originals = [r for r in repos if not r.get("fork")]
     print(
-        f"Repositories: {len(public)} public "
-        f"({len(originals)} original, {len(public) - len(originals)} forks)"
+        f"Repositories: {len(repos)} total, {len(public)} public "
+        f"({len(originals)} original incl. private, "
+        f"{len(repos) - len(originals)} forks)"
     )
 
     languages = languages_of(originals)
@@ -613,7 +605,7 @@ def main():
         activity.known_names.add(info["name"].casefold())
 
     print("Counting commits (author filter, all branches)...")
-    collect_commits(public, activity)
+    collect_commits(repos, activity)
     print(
         f"  {activity.commits} commits, "
         f"{len(activity.known_emails)} known author email(s)."
@@ -621,20 +613,20 @@ def main():
 
     print("Counting commits with unlinked emails (default branches)...")
     before = activity.commits
-    collect_unlinked_commits(public, activity)
+    collect_unlinked_commits(repos, activity)
     print(f"  +{activity.commits - before} unlinked-email commits.")
 
     print("Counting issues and PRs in own repositories...")
-    collect_own_issues_and_prs(public, activity)
+    collect_own_issues_and_prs(repos, activity)
     print("Counting issues and PRs in upstream (parent) repositories...")
-    collect_upstream_issues_and_prs(public, activity)
+    collect_upstream_issues_and_prs(repos, activity)
 
     print("Counting contributors (people) in original repositories...")
     contributor_total = unique_contributors(originals)
 
     svg = render(
         public,
-        originals,
+        public_originals,
         languages,
         followers,
         contributor_total,
@@ -646,7 +638,7 @@ def main():
     total_all, total_last_365 = activity.totals()
     current, longest = streaks(activity.days, created_date)
     print(
-        f"Updated {USER}: {len(public)} public repos; "
+        f"Updated {USER}: {len(repos)} repos ({len(public)} public); "
         f"{total_all} all-time contributions "
         f"({activity.commits} commits, {activity.issues} issues, "
         f"{activity.pull_requests} PRs); "
