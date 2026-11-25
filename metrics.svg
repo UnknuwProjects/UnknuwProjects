@@ -48,7 +48,7 @@
   <circle cx="920" cy="21" r="4" fill="#75f0c2"/>
 
   <text x="934" y="26" class="mono" fill="#9ef2d4" font-size="12">BUILDING IN PUBLIC</text>
-  <text x="900" y="57" class="mono muted" font-size="11">LIVE PROFILE · 24 NOV 2026</text>
+  <text x="900" y="57" class="mono muted" font-size="11">LIVE PROFILE · 25 NOV 2026</text>
 </g>
 
 <g>
@@ -59,11 +59,11 @@
 
   <g class="mono">
     <text x="78" y="216" class="label">REPOSITORIES</text>
-    <text x="78" y="267" class="value">42</text>
-    <text x="78" y="291" class="muted" font-size="12">12 original · 30 forks · 9 private</text>
+    <text x="78" y="267" class="value">45</text>
+    <text x="78" y="291" class="muted" font-size="12">12 original · 33 forks · 9 private</text>
 
     <text x="354" y="216" class="label">STARS RECEIVED</text>
-    <text x="354" y="267" class="value">19</text>
+    <text x="354" y="267" class="value">20</text>
     <text x="354" y="291" class="muted" font-size="12">Across all repositories</text>
 
     <text x="630" y="216" class="label">FOLLOWERS</text>
@@ -85,33 +85,33 @@
 
   <text x="84" y="456" class="white">C++</text>
   <rect x="230" y="440" width="430" height="13" rx="6.5" fill="#2b3b50"/>
-  <rect x="230" y="440" width="350.9" height="13" rx="6.5" fill="#75f0c2"/>
-  <text x="680" y="452" class="white" text-anchor="end">81.61%</text>
+  <rect x="230" y="440" width="378.1" height="13" rx="6.5" fill="#75f0c2"/>
+  <text x="680" y="452" class="white" text-anchor="end">87.93%</text>
 
   <text x="84" y="495" class="white">Kotlin</text>
   <rect x="230" y="479" width="430" height="13" rx="6.5" fill="#2b3b50"/>
-  <rect x="230" y="479" width="31.2" height="13" rx="6.5" fill="#64c9ff"/>
-  <text x="680" y="491" class="white" text-anchor="end">7.27%</text>
+  <rect x="230" y="479" width="19.8" height="13" rx="6.5" fill="#64c9ff"/>
+  <text x="680" y="491" class="white" text-anchor="end">4.59%</text>
 
   <text x="84" y="534" class="white">Java</text>
   <rect x="230" y="518" width="430" height="13" rx="6.5" fill="#2b3b50"/>
-  <rect x="230" y="518" width="25.5" height="13" rx="6.5" fill="#b4a1ff"/>
-  <text x="680" y="530" class="white" text-anchor="end">5.93%</text>
+  <rect x="230" y="518" width="17.8" height="13" rx="6.5" fill="#b4a1ff"/>
+  <text x="680" y="530" class="white" text-anchor="end">4.14%</text>
 
   <text x="84" y="573" class="white">Python</text>
   <rect x="230" y="557" width="430" height="13" rx="6.5" fill="#2b3b50"/>
-  <rect x="230" y="557" width="5.9" height="13" rx="6.5" fill="#ffbd69"/>
-  <text x="680" y="569" class="white" text-anchor="end">1.38%</text>
+  <rect x="230" y="557" width="3.8" height="13" rx="6.5" fill="#ffbd69"/>
+  <text x="680" y="569" class="white" text-anchor="end">0.87%</text>
 
   <text x="84" y="612" class="white">JavaScript</text>
   <rect x="230" y="596" width="430" height="13" rx="6.5" fill="#2b3b50"/>
-  <rect x="230" y="596" width="4.7" height="13" rx="6.5" fill="#f4d36b"/>
-  <text x="680" y="608" class="white" text-anchor="end">1.09%</text>
+  <rect x="230" y="596" width="3.0" height="13" rx="6.5" fill="#f4d36b"/>
+  <text x="680" y="608" class="white" text-anchor="end">0.69%</text>
 
   <text x="84" y="651" class="white">CMake</text>
   <rect x="230" y="635" width="430" height="13" rx="6.5" fill="#2b3b50"/>
-  <rect x="230" y="635" width="4.0" height="13" rx="6.5" fill="#ff8d9b"/>
-  <text x="680" y="647" class="white" text-anchor="end">0.92%</text>
+  <rect x="230" y="635" width="3.0" height="13" rx="6.5" fill="#ff8d9b"/>
+  <text x="680" y="647" class="white" text-anchor="end">0.58%</text>
 
 </g>
 
@@ -123,27 +123,27 @@
 <g class="mono">
 
   <text x="796" y="452" class="muted" font-size="12">ALL-TIME CONTRIBUTIONS</text>
-  <text x="1110" y="452" class="white" font-size="20" text-anchor="end">1,036</text>
+  <text x="1110" y="452" class="white" font-size="20" text-anchor="end">1,099</text>
 
   <path d="M796 466H1116" stroke="#30435a"/>
 
   <text x="796" y="493" class="muted" font-size="12">LAST 365 DAYS</text>
-  <text x="1110" y="493" fill="#9ef2d4" font-size="20" text-anchor="end">1,015</text>
+  <text x="1110" y="493" fill="#9ef2d4" font-size="20" text-anchor="end">1,078</text>
 
   <path d="M796 507H1116" stroke="#30435a"/>
 
   <text x="796" y="534" class="muted" font-size="12">CURRENT STREAK</text>
-  <text x="1110" y="534" fill="#9ef2d4" font-size="20" text-anchor="end">28 days</text>
+  <text x="1110" y="534" fill="#9ef2d4" font-size="20" text-anchor="end">29 days</text>
 
   <path d="M796 548H1116" stroke="#30435a"/>
 
   <text x="796" y="575" class="muted" font-size="12">LONGEST STREAK</text>
-  <text x="1110" y="575" class="white" font-size="20" text-anchor="end">28 days</text>
+  <text x="1110" y="575" class="white" font-size="20" text-anchor="end">29 days</text>
 
   <path d="M796 589H1116" stroke="#30435a"/>
 
   <text x="796" y="616" class="muted" font-size="12">COMMITS</text>
-  <text x="1110" y="616" class="white" font-size="20" text-anchor="end">1,028</text>
+  <text x="1110" y="616" class="white" font-size="20" text-anchor="end">1,091</text>
 
   <path d="M796 630H1116" stroke="#30435a"/>
 
@@ -163,6 +163,6 @@
 </g>
 
 <text x="54" y="824" class="mono muted" font-size="11">LIVE DATA VIA GITHUB REST API / GENERATED BY GITHUB ACTIONS</text>
-<text x="1146" y="824" class="mono muted" font-size="11" text-anchor="end">UNKNUW · 24 NOV 2026</text>
+<text x="1146" y="824" class="mono muted" font-size="11" text-anchor="end">UNKNUW · 25 NOV 2026</text>
 
 </svg>
