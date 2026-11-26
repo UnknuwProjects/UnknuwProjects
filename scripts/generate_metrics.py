@@ -501,7 +501,7 @@ def render(
   <g class="mono">
     <text x="78" y="216" class="label">REPOSITORIES</text>
     <text x="78" y="267" class="value">{repo_count:,}</text>
-    <text x="78" y="291" class="muted" font-size="12">{original_count} original · {fork_count} forks · {private_count} private</text>
+    <text x="78" y="291" class="muted" font-size="11" textLength="230" lengthAdjust="spacingAndGlyphs">{original_count} original · {fork_count} forks · {private_count} private</text>
 
     <text x="354" y="216" class="label">STARS RECEIVED</text>
     <text x="354" y="267" class="value">{stars:,}</text>
