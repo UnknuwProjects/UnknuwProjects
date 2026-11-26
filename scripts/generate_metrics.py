@@ -406,7 +406,21 @@ def render(
 
     ys = [456, 495, 534, 573, 612, 651]
     bars = [440, 479, 518, 557, 596, 635]
-    colors = ["#75f0c2", "#64c9ff", "#b4a1ff", "#ffbd69", "#f4d36b", "#ff8d9b"]
+    # The colours GitHub itself uses for each language.
+    lang_colors = {
+        "C++": "#f34b7d",
+        "C": "#a8b9cc",
+        "Java": "#b07219",
+        "Kotlin": "#a97bff",
+        "Python": "#3572a5",
+        "JavaScript": "#f1e05a",
+        "TypeScript": "#3178c6",
+        "Shell": "#89e051",
+        "CMake": "#da3434",
+        "Rust": "#dea584",
+        "Go": "#00add8",
+    }
+    fallback_colors = ["#7ee787", "#79c0ff", "#d2a8ff", "#ffa657", "#f778ba", "#a5d6ff"]
 
     rows = []
     for i in range(6):
@@ -416,14 +430,16 @@ def render(
             label = html.escape(name[:18])
             value = f"{pct:.2f}%"
             width = max(3, 430 * pct / 100)
+            color = lang_colors.get(name, fallback_colors[i])
         else:
             label = "—"
             value = "—"
             width = 0
+            color = fallback_colors[i]
         rows.append(f"""
   <text x="84" y="{ys[i]}" class="white">{label}</text>
-  <rect x="230" y="{bars[i]}" width="430" height="13" rx="6.5" fill="#2b3b50"/>
-  <rect x="230" y="{bars[i]}" width="{width:.1f}" height="13" rx="6.5" fill="{colors[i]}"/>
+  <rect x="230" y="{bars[i]}" width="430" height="13" rx="6.5" fill="#26292d"/>
+  <rect x="230" y="{bars[i]}" width="{width:.1f}" height="13" rx="6.5" fill="{color}"/>
   <text x="680" y="{ys[i]-4}" class="white" text-anchor="end">{value}</text>
 """)
 
@@ -446,49 +462,49 @@ def render(
 
 <defs>
   <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#101b2b"/>
-    <stop offset="1" stop-color="#111326"/>
+    <stop offset="0" stop-color="#050607"/>
+    <stop offset="1" stop-color="#0c0d0f"/>
   </linearGradient>
 
   <linearGradient id="accent">
-    <stop stop-color="#75f0c2"/>
-    <stop offset="1" stop-color="#64c9ff"/>
+    <stop stop-color="#7ee787"/>
+    <stop offset="1" stop-color="#7ee787"/>
   </linearGradient>
 
   <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
-    <path d="M32 0H0V32" fill="none" stroke="#9bb2ca" stroke-opacity=".07"/>
+    <path d="M32 0H0V32" fill="none" stroke="#ffffff" stroke-opacity=".05"/>
   </pattern>
 
   <style>
     .mono{{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}}
     .sans{{font-family:Inter,ui-sans-serif,system-ui,sans-serif}}
-    .muted{{fill:#91a4bb}}
-    .white{{fill:#edf5ff}}
-    .label{{font-size:14px;letter-spacing:1.5px;fill:#91a4bb}}
-    .value{{font-size:31px;font-weight:700;fill:#f2f7ff}}
-    .panel{{fill:#172438;stroke:#2a3b52;stroke-width:1}}
+    .muted{{fill:#8b949e}}
+    .white{{fill:#e6edf3}}
+    .label{{font-size:14px;letter-spacing:1.5px;fill:#8b949e}}
+    .value{{font-size:31px;font-weight:700;fill:#f0f6fc}}
+    .panel{{fill:#101214;stroke:#26292d;stroke-width:1}}
   </style>
 </defs>
 
 <rect width="1200" height="850" rx="26" fill="url(#bg)"/>
 <rect width="1200" height="850" rx="26" fill="url(#grid)"/>
 
-<path d="M0 150H1200" stroke="#33445b"/>
+<path d="M0 150H1200" stroke="#232629"/>
 <path d="M0 0H1200V8H0Z" fill="url(#accent)"/>
 
 <g transform="translate(54 48)">
-  <circle cx="24" cy="24" r="23" fill="#1e3446" stroke="#75f0c2" stroke-width="1.5"/>
+  <circle cx="24" cy="24" r="23" fill="#101214" stroke="#7ee787" stroke-width="1.5"/>
 
   <path d="M13 25l8-9 7 7 8-8M14 34h20"
-        fill="none" stroke="#75f0c2" stroke-width="2.5" stroke-linecap="round"/>
+        fill="none" stroke="#7ee787" stroke-width="2.5" stroke-linecap="round"/>
 
   <text x="66" y="20" class="sans white" font-size="25" font-weight="750" letter-spacing="1.5">UNKNUWPROJECTS</text>
   <text x="67" y="47" class="mono muted" font-size="13">SYSTEMS / TOOLS / EXPERIMENTS</text>
 
-  <rect x="900" y="4" width="190" height="34" rx="17" fill="#173b39" stroke="#2c756b"/>
-  <circle cx="920" cy="21" r="4" fill="#75f0c2"/>
+  <rect x="900" y="4" width="190" height="34" rx="17" fill="#0b120c" stroke="#2c4a34"/>
+  <circle cx="920" cy="21" r="4" fill="#7ee787"/>
 
-  <text x="934" y="26" class="mono" fill="#9ef2d4" font-size="12">BUILDING IN PUBLIC</text>
+  <text x="934" y="26" class="mono" fill="#7ee787" font-size="12">BUILDING IN PUBLIC</text>
   <text x="900" y="57" class="mono muted" font-size="11">LIVE PROFILE · {today}</text>
 </g>
 
@@ -536,37 +552,37 @@ def render(
   <text x="796" y="452" class="muted" font-size="12">ALL-TIME CONTRIBUTIONS</text>
   <text x="1110" y="452" class="white" font-size="20" text-anchor="end">{total_all:,}</text>
 
-  <path d="M796 466H1116" stroke="#30435a"/>
+  <path d="M796 466H1116" stroke="#26292d"/>
 
   <text x="796" y="493" class="muted" font-size="12">LAST 365 DAYS</text>
-  <text x="1110" y="493" fill="#9ef2d4" font-size="20" text-anchor="end">{total_last_365:,}</text>
+  <text x="1110" y="493" fill="#7ee787" font-size="20" text-anchor="end">{total_last_365:,}</text>
 
-  <path d="M796 507H1116" stroke="#30435a"/>
+  <path d="M796 507H1116" stroke="#26292d"/>
 
   <text x="796" y="534" class="muted" font-size="12">CURRENT STREAK</text>
-  <text x="1110" y="534" fill="#9ef2d4" font-size="20" text-anchor="end">{current} days</text>
+  <text x="1110" y="534" fill="#7ee787" font-size="20" text-anchor="end">{current} days</text>
 
-  <path d="M796 548H1116" stroke="#30435a"/>
+  <path d="M796 548H1116" stroke="#26292d"/>
 
   <text x="796" y="575" class="muted" font-size="12">LONGEST STREAK</text>
   <text x="1110" y="575" class="white" font-size="20" text-anchor="end">{longest} days</text>
 
-  <path d="M796 589H1116" stroke="#30435a"/>
+  <path d="M796 589H1116" stroke="#26292d"/>
 
   <text x="796" y="616" class="muted" font-size="12">COMMITS</text>
   <text x="1110" y="616" class="white" font-size="20" text-anchor="end">{activity.commits:,}</text>
 
-  <path d="M796 630H1116" stroke="#30435a"/>
+  <path d="M796 630H1116" stroke="#26292d"/>
 
   <text x="796" y="657" class="muted" font-size="12">ISSUES OPENED</text>
   <text x="1110" y="657" class="white" font-size="20" text-anchor="end">{activity.issues:,}</text>
 
-  <path d="M796 671H1116" stroke="#30435a"/>
+  <path d="M796 671H1116" stroke="#26292d"/>
 
   <text x="796" y="698" class="muted" font-size="12">PULL REQUESTS OPENED</text>
   <text x="1110" y="698" class="white" font-size="20" text-anchor="end">{activity.pull_requests:,}</text>
 
-  <path d="M796 712H1116" stroke="#30435a"/>
+  <path d="M796 712H1116" stroke="#26292d"/>
 
   <text x="796" y="739" class="muted" font-size="12">CONTRIBUTORS (PEOPLE)</text>
   <text x="1110" y="739" class="white" font-size="20" text-anchor="end">{contributors:,}</text>
