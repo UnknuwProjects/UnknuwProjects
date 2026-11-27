@@ -35,13 +35,6 @@ I'm the developer behind **UnknuwProjects**. I build Android system tools, kerne
 
 Most of my work is understanding how Android behaves under the hood, then turning those experiments into tools other people can actually use. Straightforward code, honest docs, features with a real purpose. The occasional rabbit hole is part of the job. The rabbit hole usually wins.
 
-## Flagship Project
-
-### Black-Continue
-An unofficial native Android (ARM64) port of **Black** — the 2006 Xbox FPS — built with XboxXBE-Recomp, Vulkan, and SDL3. Touch controls, gyroscope aiming, controller support, and extended graphics options. The project that eats my weekends and gives nothing back except pure nostalgia.
-
-[Explore the repository →](https://github.com/UnknuwProjects/Black-Continue)
-
 ## Selected Projects
 
 ### 01 · THPS4 Android Port
@@ -49,27 +42,32 @@ Tony Hawk's Pro Skater 4 from the original Xbox, running natively on Android —
 
 [Explore the repository →](https://github.com/UnknuwProjects/THPS4-Port-Android)
 
-### 02 · GeneralsZH Android Port
+### 02 · Black-Continue
+An unofficial native Android (ARM64) port of **Black** — the 2006 Xbox FPS — built with XboxXBE-Recomp, Vulkan, and SDL3. Touch controls, gyroscope aiming, controller support, and extended graphics options.
+
+[Explore the repository →](https://github.com/UnknuwProjects/Black-Continue)
+
+### 03 · GeneralsZH Android Port
 Command & Conquer: Generals Zero Hour on Android. I translated the whole game and its launcher into Indonesian for the community port, and I keep my own fork with extra graphics options on top.
 
 [Explore the repository →](https://github.com/UnknuwProjects/GeneralsZH-Android-Port)
 
-### 03 · App Slayer
+### 04 · App Slayer
 The companion app for the Background App Slayer module. Floating monitor, an FPS recorder with per-game session reports, and battery health tracking. The module does the work — this one keeps an eye on it.
 
 [Explore the repository →](https://github.com/UnknuwProjects/App-Slayer)
 
-### 04 · Background App Slayer
+### 05 · Background App Slayer
 A module that manages unnecessary background processes and cuts avoidable resource usage, with gaming performance in mind. Your RAM called — it says thanks.
 
 [Explore the repository →](https://github.com/UnknuwProjects/Background-App-Slayer)
 
-### 05 · Hide Navbar Keyboard
+### 06 · Hide Navbar Keyboard
 A lightweight Android utility that automatically hides the navigation bar when the keyboard appears. Supports Android 10–15+. Small fix, big quality-of-life energy.
 
 [Explore the repository →](https://github.com/UnknuwProjects/Hide-Navbar-Keyboard)
 
-### 06 · ZRAM Boost Dynamic
+### 07 · ZRAM Boost Dynamic
 A KernelSU module that lets you configure ZRAM size during installation, making memory management actually flexible. Because one-size-fits-all fits nobody.
 
 [Explore the repository →](https://github.com/UnknuwProjects/ZRAM-Boost-Dynamic)
