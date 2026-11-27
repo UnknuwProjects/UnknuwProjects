@@ -45,21 +45,31 @@ An unofficial native Android (ARM64) port of **Black** — the 2006 Xbox FPS —
 ## Selected Projects
 
 ### 01 · THPS4 Android Port
-Tony Hawk's Pro Skater 4 from the original Xbox, running natively on Android — statically recompiled with XboxXBE-Recomp, no emulation. The port that proved this whole recomp idea actually works.
+Tony Hawk's Pro Skater 4 from the original Xbox, running natively on Android — statically recompiled with XboxXBE-Recomp, no emulation. The port that proved this whole recomp idea actually works. Still being stabilized — the code lands here once it's ready.
 
 [Explore the repository →](https://github.com/UnknuwProjects/THPS4-Port-Android)
 
-### 02 · Background App Slayer
+### 02 · GeneralsZH Android Port
+Command & Conquer: Generals Zero Hour on Android. I translated the whole game and its launcher into Indonesian for the community port, and I keep my own fork with extra graphics options on top.
+
+[Explore the repository →](https://github.com/UnknuwProjects/GeneralsZH-Android-Port)
+
+### 03 · App Slayer
+The companion app for the Background App Slayer module. Floating monitor, an FPS recorder with per-game session reports, and battery health tracking. The module does the work — this one keeps an eye on it.
+
+[Explore the repository →](https://github.com/UnknuwProjects/App-Slayer)
+
+### 04 · Background App Slayer
 A module that manages unnecessary background processes and cuts avoidable resource usage, with gaming performance in mind. Your RAM called — it says thanks.
 
 [Explore the repository →](https://github.com/UnknuwProjects/Background-App-Slayer)
 
-### 03 · Hide Navbar Keyboard
+### 05 · Hide Navbar Keyboard
 A lightweight Android utility that automatically hides the navigation bar when the keyboard appears. Supports Android 10–15+. Small fix, big quality-of-life energy.
 
 [Explore the repository →](https://github.com/UnknuwProjects/Hide-Navbar-Keyboard)
 
-### 04 · ZRAM Boost Dynamic
+### 06 · ZRAM Boost Dynamic
 A KernelSU module that lets you configure ZRAM size during installation, making memory management actually flexible. Because one-size-fits-all fits nobody.
 
 [Explore the repository →](https://github.com/UnknuwProjects/ZRAM-Boost-Dynamic)
@@ -80,6 +90,7 @@ A KernelSU module that lets you configure ZRAM size during installation, making 
 | Category | Stack |
 |:--|:--|
 | Languages | C++, Java, Kotlin, Shell, Python, JavaScript |
+| Porting | XboxXBERecomp (my own), Vulkan, SDL3 |
 | Platforms | Android, Linux |
 | System tools | Magisk, KernelSU, ADB, Fastboot |
 | Workflow | Git, Terminal, too much coffee |
