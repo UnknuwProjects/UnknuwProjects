@@ -2,7 +2,7 @@ name: GitHub Metrics
 
 on:
   schedule:
-    - cron: "0 0 * * *" # Daily at 07:00 Jakarta time
+    - cron: "17 1 * * *" # Daily at 08:17 Jakarta time (01:17 UTC — the midnight UTC slot is the most congested one on GitHub and ran 5-7 hours late)
   workflow_dispatch:
   push:
     branches:
