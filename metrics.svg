@@ -85,12 +85,12 @@
 
   <text x="84" y="456" class="white">C++</text>
   <rect x="230" y="440" width="430" height="13" rx="6.5" fill="#26292d"/>
-  <rect x="230" y="440" width="377.1" height="13" rx="6.5" fill="#f34b7d"/>
+  <rect x="230" y="440" width="377.2" height="13" rx="6.5" fill="#f34b7d"/>
   <text x="680" y="452" class="white" text-anchor="end">87.71%</text>
 
   <text x="84" y="495" class="white">Java</text>
   <rect x="230" y="479" width="430" height="13" rx="6.5" fill="#26292d"/>
-  <rect x="230" y="479" width="27.0" height="13" rx="6.5" fill="#b07219"/>
+  <rect x="230" y="479" width="26.9" height="13" rx="6.5" fill="#b07219"/>
   <text x="680" y="491" class="white" text-anchor="end">6.27%</text>
 
   <text x="84" y="534" class="white">Kotlin</text>
@@ -123,12 +123,12 @@
 <g class="mono">
 
   <text x="796" y="452" class="muted" font-size="12">ALL-TIME CONTRIBUTIONS</text>
-  <text x="1110" y="452" class="white" font-size="20" text-anchor="end">1,345</text>
+  <text x="1110" y="452" class="white" font-size="20" text-anchor="end">1,347</text>
 
   <path d="M796 466H1116" stroke="#26292d"/>
 
   <text x="796" y="493" class="muted" font-size="12">LAST 365 DAYS</text>
-  <text x="1110" y="493" fill="#7ee787" font-size="20" text-anchor="end">1,324</text>
+  <text x="1110" y="493" fill="#7ee787" font-size="20" text-anchor="end">1,326</text>
 
   <path d="M796 507H1116" stroke="#26292d"/>
 
@@ -143,7 +143,7 @@
   <path d="M796 589H1116" stroke="#26292d"/>
 
   <text x="796" y="616" class="muted" font-size="12">COMMITS</text>
-  <text x="1110" y="616" class="white" font-size="20" text-anchor="end">1,335</text>
+  <text x="1110" y="616" class="white" font-size="20" text-anchor="end">1,337</text>
 
   <path d="M796 630H1116" stroke="#26292d"/>
 
