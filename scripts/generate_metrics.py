@@ -35,7 +35,18 @@ if not TOKEN:
     raise SystemExit("Missing token: set METRICS_TOKEN or GITHUB_TOKEN.")
 
 API = "https://api.github.com"
-NOW = datetime.now(timezone.utc)
+
+# All day math — today, the trailing window, streaks, per-day buckets —
+# runs on Jakarta days (UTC+7, no DST), so work done at 05:30 local
+# counts for that day, not the UTC day before it.
+try:
+    from zoneinfo import ZoneInfo
+
+    JAKARTA = ZoneInfo("Asia/Jakarta")
+except Exception:
+    JAKARTA = timezone(timedelta(hours=7))
+
+NOW = datetime.now(JAKARTA)
 TODAY = NOW.date()
 WINDOW_START = TODAY - timedelta(days=364)  # trailing 365 days, incl. today
 
@@ -91,16 +102,24 @@ def paginated(url, params=None, max_pages=50):
         page += 1
 
 
-def parse_date(value):
-    """'2026-11-18T00:54:16Z' -> date. Returns None for bad input."""
+def parse_date(value, jakarta=True):
+    """'2026-11-18T00:54:16Z' -> calendar date. Returns None for bad input.
+
+    With jakarta=True (the default, used for all activity) the date is
+    the Jakarta calendar day of that moment. The account creation date
+    passes jakarta=False and keeps the plain UTC date GitHub reports.
+    """
     if not value:
         return None
     try:
-        return datetime.fromisoformat(
-            str(value).replace("Z", "+00:00")
-        ).date()
+        moment = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
     except ValueError:
         return None
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=timezone.utc)
+    if jakarta:
+        return moment.astimezone(JAKARTA).date()
+    return moment.date()
 
 
 def is_mine_by_login(item_user):
@@ -613,7 +632,7 @@ def render(
 
 def main():
     info = account_info()
-    created_date = parse_date(info.get("created_at")) or TODAY
+    created_date = parse_date(info.get("created_at"), jakarta=False) or TODAY
     followers = int(info.get("followers", 0))
     if info.get("name"):
         print(f"Account: {USER} ({info['name']}), created {created_date}")
