@@ -22,6 +22,7 @@ public repos, which makes the numbers too low.
 
 import html
 import os
+import time
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -49,9 +50,24 @@ S.headers.update(
 
 
 def get(url, params=None):
-    response = S.get(url, params=params, timeout=45)
-    response.raise_for_status()
-    return response
+    # GitHub throws a transient 502 now and then, usually mid-pagination.
+    # Retry those (and dropped connections) a few times before giving up,
+    # so one bad response does not kill the whole daily run.
+    delays = (2, 5, 10)
+    for attempt in range(len(delays) + 1):
+        try:
+            response = S.get(url, params=params, timeout=45)
+            if response.status_code < 500:
+                response.raise_for_status()
+                return response
+            error = requests.HTTPError(
+                f"{response.status_code} Server Error for url: {response.url}"
+            )
+        except (requests.ConnectionError, requests.Timeout) as exc:
+            error = exc
+        if attempt == len(delays):
+            raise error
+        time.sleep(delays[attempt])
 
 
 def paginated(url, params=None, max_pages=50):
